@@ -1,0 +1,71 @@
+﻿@page "/clubs/{ClubReference:guid}"
+@using OpenLeague.Shared
+@using Newtonsoft.Json
+@inject HttpClient _http
+
+@if (_club != null)
+{
+    <PageTitle>Club | @_club.Name</PageTitle>
+
+    <h1>@_club.Name</h1>
+
+    <h2>Leagues</h2>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var league in _leagues.OrderBy(league => league.Name))
+            {
+                <tr>
+                    <td>
+                        <NavLink href="@($"leagues/{league.Reference}")">
+                            @league.Name
+                        </NavLink>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private OpenLeague.Shared.Club _club;
+    private List<OpenLeague.Shared.League> _leagues;
+
+    [Parameter]
+    public Guid ClubReference { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetClub();
+        await GetLeagues();
+    }
+
+    private async Task GetClub()
+    {
+        var responseData = await (await _http.GetAsync($"api/clubs/{ClubReference}")).Content.ReadAsStringAsync();
+        var getClubResponse = JsonConvert.DeserializeObject<GetClubResponse>(responseData);
+        if (getClubResponse != null)
+        {
+            _club = getClubResponse.Club;
+        }
+    }
+
+    private async Task GetLeagues()
+    {
+        var responseData = await (await _http.GetAsync($"api/clubs/{ClubReference}/leagues")).Content.ReadAsStringAsync();
+        var getLeaguesResponse = JsonConvert.DeserializeObject<GetLeaguesResponse>(responseData);
+        if (getLeaguesResponse != null)
+        {
+            _leagues = getLeaguesResponse.Leagues.Select(league => new OpenLeague.Shared.League
+            {
+                Name = league.Name,
+                Reference = league.Reference
+            }).ToList();
+        }
+    }
+}

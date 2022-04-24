@@ -1,0 +1,79 @@
+﻿@page "/leagues/{LeagueReference:guid}"
+@using OpenLeague.Shared
+@using Newtonsoft.Json
+@inject HttpClient _http
+
+@if (_results != null)
+{
+    <PageTitle>League | @_league.Name</PageTitle>
+
+    <h1>@_league.Name</h1>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Position</th>
+                <th>Name</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (var count = 0; count < _results.Count; count++)
+            {
+                <tr>
+                    <td>@(count + 1)</td>
+                    <td>@_results[count].PlayerName</td>
+                    <td>@_results[count].Points</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Result> _results;
+    private OpenLeague.Shared.League _league;
+
+    [Parameter]
+    public Guid LeagueReference { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetLeague();
+        await GetLeagueResults();
+    }
+
+    private async Task GetLeague()
+    {
+        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}")).Content.ReadAsStringAsync();
+        var getLeagueResponse = JsonConvert.DeserializeObject<GetLeagueResponse>(responseData);
+        if (getLeagueResponse != null)
+        {
+            _league = getLeagueResponse.League;
+        }
+    }
+
+    private async Task GetLeagueResults()
+    {
+        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/results")).Content
+            .ReadAsStringAsync();
+        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameResultsResponse>(responseData);
+        if (getGameResultsResponse != null)
+        {
+            _results = getGameResultsResponse.Results
+                .GroupBy(result => result.Player.Reference)
+                .OrderByDescending(results => results.Sum(result => result.Points))
+                .Select(gameResult => new Result
+                {
+                    PlayerName = gameResult.First().Player.Name,
+                    Points = gameResult.Sum(x => x.Points)
+                }).ToList();
+        }
+    }
+
+    public class Result
+    {
+        public string PlayerName { get; set; }
+        public int Points { get; set; }
+    }
+}
