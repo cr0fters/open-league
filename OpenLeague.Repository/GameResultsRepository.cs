@@ -29,7 +29,7 @@ public class GameResultsRepository
                 FROM
                     GameResult gr
                 INNER JOIN
-                    Game g on gr.GameId = gr.GameId
+                    Game g on g.GameId = gr.GameId
                 INNER JOIN
                     League l on l.LeagueId = g.LeagueId
                 INNER JOIN
