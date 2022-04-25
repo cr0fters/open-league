@@ -25,7 +25,8 @@ public class GameResultsRepository
                     p.Surname,
                     p.Reference as PlayerReference,
                     g.Reference as GameReference,
-                    g.Season
+                    g.Season,
+                    g.Date as GameDate
                 FROM
                     GameResult gr
                 INNER JOIN
@@ -61,4 +62,5 @@ public class GameResultEntity
     public Guid PlayerReference { get; set; }
     public Guid GameReference { get; set; }
     public int Season { get; set; }
+    public DateTime GameDate { get; set; }
 }

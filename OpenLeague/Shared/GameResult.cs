@@ -6,4 +6,5 @@ public class GameResult
     public Player Player { get; set; }
     public Guid GameReference { get; set; }
     public int Season { get; set; }
+    public DateTime GameDate { get; set; }
 }

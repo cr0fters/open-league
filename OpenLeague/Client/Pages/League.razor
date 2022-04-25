@@ -1,6 +1,7 @@
 ﻿@page "/leagues/{LeagueReference:guid}"
 @using OpenLeague.Shared
 @using Newtonsoft.Json
+@using System.Collections
 @inject HttpClient _http
 
 @if (_results != null)
@@ -11,11 +12,32 @@
 
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#">Chorlton Jokerstars</a></li>
-            <li class="breadcrumb-item"><a href="#">2022</a></li>
-            <li class="breadcrumb-item active">Overall</li>
+            <li class="breadcrumb-item">
+                <NavLink href="@($"clubs/{_club.Reference}")">
+                    @_club.Name
+                </NavLink>
+            </li>
+            <li class="breadcrumb-item active">
+                @_league.Name
+            </li>
         </ol>
     </nav>
+
+    <select class="form-select w-auto mb-3">
+        <option>@_league.Name - Overall</option>
+        @foreach (var season in _selector.Seasons.OrderByDescending(season => season.Number))
+        {
+            <option>Season @season.Number - Overall</option>
+            {
+                var week = season.Games.Count;
+                @foreach (var game in season.Games.OrderByDescending(game => game.GameDate))
+                {
+                    <option>Season @season.Number - Week @week</option>
+                    week--;
+                }
+            }
+        }
+    </select>
 
     <table class="table table-striped table-hover">
         <thead>
@@ -41,6 +63,8 @@
 @code {
     private List<Result> _results;
     private OpenLeague.Shared.League _league;
+    private OpenLeague.Shared.Club _club;
+    private Selector _selector;
 
     [Parameter]
     public Guid LeagueReference { get; set; }
@@ -48,7 +72,43 @@
     protected override async Task OnInitializedAsync()
     {
         await GetLeague();
-        await GetLeagueResults();
+        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/results")).Content.ReadAsStringAsync();
+        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameResultsResponse>(responseData);
+        if (getGameResultsResponse != null)
+        {
+            BuildResults(getGameResultsResponse.Results);
+            BuildSelector(getGameResultsResponse.Results);
+        }
+    }
+
+    private void BuildSelector(IEnumerable<GameResult> gameResults)
+    {
+        _selector = new Selector
+        {
+            Seasons = gameResults.GroupBy(result => result.Season).Select(result =>
+                new Selector.SeasonModel
+                {
+                    Number = result.First().Season,
+                    Games = result.GroupBy(gameResult => gameResult.GameReference).Select(results =>
+                        new Selector.SeasonModel.GameModel
+                        {
+                            GameDate = results.First().GameDate,
+                            Reference = results.First().GameReference
+                        }).ToList()
+                }).ToList()
+        };
+    }
+
+    private void BuildResults(IEnumerable<GameResult> gameResults)
+    {
+        _results = gameResults
+            .GroupBy(result => result.Player.Reference)
+            .OrderByDescending(results => results.Sum(result => result.Points))
+            .Select(result => new Result
+                {
+                    PlayerName = result.First().Player.Name,
+                    Points = result.Sum(gameResult => gameResult.Points)
+                }).ToList();
     }
 
     private async Task GetLeague()
@@ -58,24 +118,7 @@
         if (getLeagueResponse != null)
         {
             _league = getLeagueResponse.League;
-        }
-    }
-
-    private async Task GetLeagueResults()
-    {
-        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/results")).Content
-            .ReadAsStringAsync();
-        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameResultsResponse>(responseData);
-        if (getGameResultsResponse != null)
-        {
-            _results = getGameResultsResponse.Results
-                .GroupBy(result => result.Player.Reference)
-                .OrderByDescending(results => results.Sum(result => result.Points))
-                .Select(gameResult => new Result
-                    {
-                        PlayerName = gameResult.First().Player.Name,
-                        Points = gameResult.Sum(x => x.Points)
-                    }).ToList();
+            _club = getLeagueResponse.Club;
         }
     }
 
@@ -83,5 +126,22 @@
     {
         public string PlayerName { get; set; }
         public int Points { get; set; }
+    }
+
+    public class Selector
+    {
+        public List<SeasonModel> Seasons { get; set; }
+
+        public class SeasonModel
+        {
+            public int Number { get; set; }
+            public List<GameModel> Games { get; set; }
+
+            public class GameModel
+            {
+                public DateTime GameDate { get; set; }
+                public Guid Reference { get; set; }
+            }
+        }
     }
 }

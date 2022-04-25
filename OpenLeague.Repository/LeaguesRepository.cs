@@ -38,12 +38,18 @@ public class LeaguesRepository
         {
             return (await connection.QuerySingleOrDefaultAsync<LeagueEntity>(@"
                 SELECT
-                    Reference,
-                    Name
+                    l.LeagueId,
+                    l.Reference,
+                    l.Name,
+                    l.ClubId,
+                    c.Reference as ClubReference,
+                    c.Name as ClubName
                 FROM
-                    League
+                    League l
+                INNER JOIN
+                    Club c on c.ClubId = l.ClubId
                 WHERE 
-                    Reference = @Reference", new
+                    l.Reference = @Reference", new
             {
                 Reference = leagueReference
             }));
@@ -86,4 +92,6 @@ public class LeagueEntity
     public string Name { get; set; }
     public Guid Reference { get; set; }
     public int LeagueId { get; set; }
+    public Guid ClubReference { get; set; }
+    public string ClubName { get; set; }
 }

@@ -20,29 +20,27 @@ namespace OpenLeague.Server.Controllers
         [HttpGet("leagues/{leagueReference}/results")]
         public async Task<GetGameResultsResponse> Get(Guid leagueReference, [FromQuery]GetGameResultsRequest getGameResultsRequest)
         {
-
             var gameResultEntities = (await _gameResultsRepository.RetrieveGameResults(leagueReference, getGameResultsRequest.GameReference, getGameResultsRequest.Season))
                 .OrderBy(gameResultEntity=>gameResultEntity.Position).ToList();
-            var results = gameResultEntities.Select((gameResultEntity, count) =>
+            return new GetGameResultsResponse
             {
-                var position = count + 1;
-                return new GameResult
+                Results = gameResultEntities.Select((gameResultEntity, count) =>
                 {
-                    GameReference = gameResultEntity.GameReference,
-                    Season = gameResultEntity.Season,
-                    Player = new Player
+                    var position = count + 1;
+                    return new GameResult
                     {
-                        Name = gameResultEntity.Forename + " " + gameResultEntity.Surname,
-                        Reference = gameResultEntity.PlayerReference,
-                    },
-                    Points = CalculatePoints(position)
-                };
-            }).ToList();
-            var response = new GetGameResultsResponse
-            {
-                Results = results
+                        GameReference = gameResultEntity.GameReference,
+                        GameDate = gameResultEntity.GameDate,
+                        Season = gameResultEntity.Season,
+                        Player = new Player
+                        {
+                            Name = gameResultEntity.Forename + " " + gameResultEntity.Surname,
+                            Reference = gameResultEntity.PlayerReference,
+                        },
+                        Points = CalculatePoints(position)
+                    };
+                }).ToList()
             };
-            return response;
         }
 
         private static int CalculatePoints(int position)

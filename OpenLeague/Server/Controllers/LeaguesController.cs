@@ -52,6 +52,11 @@ namespace OpenLeague.Server.Controllers
                 {
                     Name = league.Name,
                     Reference = league.Reference
+                },
+                Club = new Club
+                {
+                    Reference = league.ClubReference,
+                    Name = league.ClubName
                 }
             };
         }
