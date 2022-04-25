@@ -49,10 +49,41 @@ public class LeaguesRepository
             }));
         }
     }
+
+    public async Task<LeagueEntity> CreateLeague(int clubId, string name)
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            var reference = Guid.NewGuid();
+            var leagueId = await connection.QuerySingleAsync<int>(@"
+                INSERT INTO
+                    League
+                    (Reference, 
+                    ClubId, 
+                    Name)
+                VALUES
+                    (@Reference, 
+                    @ClubId, 
+                    @Name);
+                SELECT LAST_INSERT_ID();", new
+            {
+                ClubId = clubId,
+                Reference = reference,
+                Name = name
+            });
+            return new LeagueEntity
+            {
+                LeagueId = leagueId,
+                Name = name,
+                Reference = reference
+            };
+        }
+    }
 }
 
 public class LeagueEntity
 {
     public string Name { get; set; }
     public Guid Reference { get; set; }
+    public int LeagueId { get; set; }
 }

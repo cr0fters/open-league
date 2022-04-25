@@ -7,7 +7,15 @@
 {
     <PageTitle>League | @_league.Name</PageTitle>
 
-    <h1>@_league.Name</h1>
+    <h1>League</h1>
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Chorlton Jokerstars</a></li>
+            <li class="breadcrumb-item"><a href="#">2022</a></li>
+            <li class="breadcrumb-item active">Overall</li>
+        </ol>
+    </nav>
 
     <table class="table table-striped table-hover">
         <thead>
@@ -64,10 +72,10 @@
                 .GroupBy(result => result.Player.Reference)
                 .OrderByDescending(results => results.Sum(result => result.Points))
                 .Select(gameResult => new Result
-                {
-                    PlayerName = gameResult.First().Player.Name,
-                    Points = gameResult.Sum(x => x.Points)
-                }).ToList();
+                    {
+                        PlayerName = gameResult.First().Player.Name,
+                        Points = gameResult.Sum(x => x.Points)
+                    }).ToList();
         }
     }
 
