@@ -38,29 +38,11 @@
         }
     </select>
 
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>Position</th>
-                <th>Name</th>
-                <th>Points</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (var count = 0; count < _results.Count; count++)
-            {
-                <tr>
-                    <td>@(count + 1)</td>
-                    <td>@_results[count].PlayerName</td>
-                    <td>@_results[count].Points</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <LeagueTable Standings="_results"></LeagueTable>
 }
 
 @code {
-    private List<Result> _results;
+    private List<Standing> _results;
     private OpenLeague.Shared.League _league;
     private OpenLeague.Shared.Club _club;
     private Selector _selector;
@@ -107,9 +89,9 @@
             _results = getGameResultsResponse.Standings
                    .GroupBy(result => result.Player.Reference)
                    .OrderByDescending(results => results.Sum(result => result.Points))
-                   .Select(result => new Result
+                   .Select(result => new Standing
                        {
-                           PlayerName = result.First().Player.Name,
+                           Player = result.First().Player,
                            Points = result.Sum(gameResult => gameResult.Points)
                        }).ToList();
         }
@@ -126,11 +108,6 @@
         }
     }
 
-    public class Result
-    {
-        public string PlayerName { get; set; }
-        public int Points { get; set; }
-    }
 
     public class Selector
     {

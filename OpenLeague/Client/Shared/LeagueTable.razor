@@ -1,0 +1,25 @@
+﻿@using OpenLeague.Shared
+<table class="table table-striped table-hover">
+    <thead>
+    <tr>
+        <th>Position</th>
+        <th>Name</th>
+        <th>Points</th>
+    </tr>
+    </thead>
+    <tbody>
+    @for (var count = 0; count < Standings.Count; count++)
+    {
+        <tr>
+            <td>@(count + 1)</td>
+            <td>@Standings[count].Player.Name</td>
+            <td>@Standings[count].Points</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    [Parameter]
+    public List<Standing> Standings { get; set; }
+}
