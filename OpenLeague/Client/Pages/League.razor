@@ -1,7 +1,6 @@
 ﻿@page "/leagues/{LeagueReference:guid}"
 @using OpenLeague.Shared
 @using Newtonsoft.Json
-@using System.Collections
 @inject HttpClient _http
 
 @if (_results != null)
@@ -72,43 +71,48 @@
     protected override async Task OnInitializedAsync()
     {
         await GetLeague();
-        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/results")).Content.ReadAsStringAsync();
-        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameResultsResponse>(responseData);
-        if (getGameResultsResponse != null)
+        await BuildResults();
+        await BuildSelector();
+    }
+
+    private async Task BuildSelector()
+    {
+        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/games")).Content.ReadAsStringAsync();
+        var getGamesResponse = JsonConvert.DeserializeObject<GetGamesResponse>(responseData);
+        if (getGamesResponse != null)
         {
-            BuildResults(getGameResultsResponse.Results);
-            BuildSelector(getGameResultsResponse.Results);
+            _selector = new Selector
+                {
+                    Seasons = getGamesResponse.Games.GroupBy(result => result.Season).Select(result =>
+                        new Selector.SeasonModel
+                        {
+                            Number = result.First().Season,
+                            Games = result.GroupBy(gameResult => gameResult.Reference).Select(results =>
+                                new Selector.SeasonModel.GameModel
+                                {
+                                    GameDate = results.First().Date,
+                                    Reference = results.First().Reference
+                                }).ToList()
+                        }).ToList()
+                };
         }
     }
 
-    private void BuildSelector(IEnumerable<GameResult> gameResults)
+    private async Task BuildResults()
     {
-        _selector = new Selector
+        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/standings")).Content.ReadAsStringAsync();
+        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameStandingsResponse>(responseData);
+        if (getGameResultsResponse != null)
         {
-            Seasons = gameResults.GroupBy(result => result.Season).Select(result =>
-                new Selector.SeasonModel
-                {
-                    Number = result.First().Season,
-                    Games = result.GroupBy(gameResult => gameResult.GameReference).Select(results =>
-                        new Selector.SeasonModel.GameModel
-                        {
-                            GameDate = results.First().GameDate,
-                            Reference = results.First().GameReference
-                        }).ToList()
-                }).ToList()
-        };
-    }
-
-    private void BuildResults(IEnumerable<GameResult> gameResults)
-    {
-        _results = gameResults
-            .GroupBy(result => result.Player.Reference)
-            .OrderByDescending(results => results.Sum(result => result.Points))
-            .Select(result => new Result
-                {
-                    PlayerName = result.First().Player.Name,
-                    Points = result.Sum(gameResult => gameResult.Points)
-                }).ToList();
+            _results = getGameResultsResponse.Standings
+                   .GroupBy(result => result.Player.Reference)
+                   .OrderByDescending(results => results.Sum(result => result.Points))
+                   .Select(result => new Result
+                       {
+                           PlayerName = result.First().Player.Name,
+                           Points = result.Sum(gameResult => gameResult.Points)
+                       }).ToList();
+        }
     }
 
     private async Task GetLeague()

@@ -12,6 +12,29 @@ public class GamesRepository
         _connectionString = connectionString;
     }
 
+    public async Task<List<GameEntity>> RetrieveGames(Guid leagueReference)
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            return (await connection.QueryAsync<GameEntity>(@"
+                SELECT
+                    g.GameId,
+                    g.Reference,
+                    g.LeagueId,
+                    g.Date,
+                    g.Season
+                FROM
+                    Game g
+                INNER JOIN 
+                    League l on l.LeagueId = g.LeagueId
+                WHERE
+                    l.Reference = @Reference", new
+            {
+                Reference = leagueReference
+            })).ToList();
+        }
+    }
+
     public async Task<GameEntity> CreateGame(int leagueId, DateTime date, int season)
     {
         using (var connection = new MySqlConnection(_connectionString))
