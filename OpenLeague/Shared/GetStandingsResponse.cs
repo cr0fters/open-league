@@ -1,6 +1,6 @@
 ﻿namespace OpenLeague.Shared;
 
-public class GetGameStandingsResponse
+public class GetStandingsResponse
 {
     public List<Standing> Standings { get; set; }
 }

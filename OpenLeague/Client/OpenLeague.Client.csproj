@@ -16,4 +16,8 @@
     <ProjectReference Include="..\Shared\OpenLeague.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>

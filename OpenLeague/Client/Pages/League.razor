@@ -3,7 +3,7 @@
 @using Newtonsoft.Json
 @inject HttpClient _http
 
-@if (_results != null)
+@if (_league != null && _club != null && _games != null)
 {
     <PageTitle>League | @_league.Name</PageTitle>
 
@@ -22,30 +22,50 @@
         </ol>
     </nav>
 
-    <select class="form-select w-auto mb-3">
-        <option>@_league.Name - Overall</option>
-        @foreach (var season in _selector.Seasons.OrderByDescending(season => season.Number))
-        {
-            <option>Season @season.Number - Overall</option>
+    <div class="mb-3">
+        <label class="form-label">Season</label>
+        <select class="w-auto form-select" @onchange="SeasonChanged">
+            <option value="">Overall</option>
+            @foreach (var season in _games.GroupBy(game => game.Season).Select(games => games.Key))
             {
-                var week = season.Games.Count;
-                @foreach (var game in season.Games.OrderByDescending(game => game.GameDate))
-                {
-                    <option>Season @season.Number - Week @week</option>
-                    week--;
-                }
+                <option value="@season">@season</option>
             }
-        }
-    </select>
-
-    <LeagueTable Standings="_results"></LeagueTable>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Game</label>
+        <select @ref="_myselect" id="myselect" class="w-auto form-select" @onchange="GameChanged">
+            <option value="">Overall</option>
+            @foreach (var game in _games.Where(x => x.Season == _season))
+            {
+                <option value="@game.Reference">@game.Date.ToString("M")</option>
+            }
+        </select>
+    </div>
 }
 
+@if (_results != null)
+{
+    <LeagueTable Standings="_results"></LeagueTable>
+}
+else
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+
+
+
 @code {
+    [Inject] IJSRuntime JsRuntime { get; set; }
     private List<Standing> _results;
     private OpenLeague.Shared.League _league;
     private OpenLeague.Shared.Club _club;
-    private Selector _selector;
+    private List<Game> _games;
+    private int? _season;
+    private Guid? _gameReference;
+    private ElementReference _myselect;
 
     [Parameter]
     public Guid LeagueReference { get; set; }
@@ -63,30 +83,30 @@
         var getGamesResponse = JsonConvert.DeserializeObject<GetGamesResponse>(responseData);
         if (getGamesResponse != null)
         {
-            _selector = new Selector
-                {
-                    Seasons = getGamesResponse.Games.GroupBy(result => result.Season).Select(result =>
-                        new Selector.SeasonModel
-                        {
-                            Number = result.First().Season,
-                            Games = result.GroupBy(gameResult => gameResult.Reference).Select(results =>
-                                new Selector.SeasonModel.GameModel
-                                {
-                                    GameDate = results.First().Date,
-                                    Reference = results.First().Reference
-                                }).ToList()
-                        }).ToList()
-                };
+            _games = getGamesResponse.Games;
         }
     }
 
     private async Task BuildResults()
     {
-        var responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/standings")).Content.ReadAsStringAsync();
-        var getGameResultsResponse = JsonConvert.DeserializeObject<GetGameStandingsResponse>(responseData);
-        if (getGameResultsResponse != null)
+        string responseData;
+        if (_season.HasValue && _gameReference.HasValue)
         {
-            _results = getGameResultsResponse.Standings
+            responseData = await (await _http.GetAsync($"api/games/{_gameReference.Value}/standings")).Content.ReadAsStringAsync();
+        }
+        else if (_season.HasValue)
+        {
+            responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/seasons/{_season.Value}/standings")).Content.ReadAsStringAsync();
+        }
+        else
+        {
+            responseData = await (await _http.GetAsync($"api/leagues/{LeagueReference}/standings")).Content.ReadAsStringAsync();
+        }
+
+        var getStandingsResponse = JsonConvert.DeserializeObject<GetStandingsResponse>(responseData);
+        if (getStandingsResponse != null)
+        {
+            _results = getStandingsResponse.Standings
                    .GroupBy(result => result.Player.Reference)
                    .OrderByDescending(results => results.Sum(result => result.Points))
                    .Select(result => new Standing
@@ -125,4 +145,27 @@
             }
         }
     }
+
+    private async Task SeasonChanged(ChangeEventArgs arg)
+    {
+        int.TryParse(arg.Value.ToString(), out var season);
+        if (season > 0)
+        {
+            _season = season;
+        }
+        else
+        {
+            _season = null;
+        }
+        await JsRuntime.InvokeVoidAsync("exampleJsFunctions.selectElement", _myselect);
+        await BuildResults();
+    }
+
+    private async Task GameChanged(ChangeEventArgs arg)
+    {
+        Guid.TryParse(arg.Value.ToString(), out var gameReference);
+        _gameReference = gameReference == Guid.Empty ? null : gameReference;
+        await BuildResults();
+    }
+
 }

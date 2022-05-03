@@ -18,17 +18,17 @@ namespace OpenLeague.Server.Controllers
         }
 
         [HttpGet("games/{gameReference}/standings")]
-        public async Task<GetGameStandingsResponse> GetGameStandings(Guid gameReference)
+        public async Task<GetStandingsResponse> GetGameStandings(Guid gameReference)
         {
             var gameResultEntities = (await _gameResultsRepository.ByGame(gameReference));
-            return new GetGameStandingsResponse
+            return new GetStandingsResponse
             {
                 Standings = BuildStandings(gameResultEntities)
             };
         }
 
         [HttpGet("leagues/{leagueReference}/standings")]
-        public async Task<GetLeagueStandingsResponse> GetLeagueStandings(Guid leagueReference)
+        public async Task<GetStandingsResponse> GetLeagueStandings(Guid leagueReference)
         {
             var gameResultEntities = await _gameResultsRepository.ByLeague(leagueReference);
             var standings = new List<Standing>();
@@ -46,14 +46,14 @@ namespace OpenLeague.Server.Controllers
                     }
                 }
             }
-            return new GetLeagueStandingsResponse
+            return new GetStandingsResponse
             {
                 Standings = standings
             };
         }
 
         [HttpGet("leagues/{leagueReference}/seasons/{season}/standings")]
-        public async Task<GetSeasonStandingsResponse> GetSeasonStandings(Guid leagueReference, int season)
+        public async Task<GetStandingsResponse> GetSeasonStandings(Guid leagueReference, int season)
         {
             var gameResultEntities = await _gameResultsRepository.BySeason(leagueReference, season);
             var standings = new List<Standing>();
@@ -71,7 +71,7 @@ namespace OpenLeague.Server.Controllers
                     }
                 }
             }
-            return new GetSeasonStandingsResponse
+            return new GetStandingsResponse
             {
                 Standings = standings
             };
