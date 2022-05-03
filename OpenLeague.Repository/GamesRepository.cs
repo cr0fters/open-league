@@ -35,6 +35,32 @@ public class GamesRepository
         }
     }
 
+    public async Task<GameEntity> RetrieveGame(Guid gameReference)
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            return await connection.QuerySingleAsync<GameEntity>(@"
+                SELECT
+                    g.GameId,
+                    g.Reference,
+                    g.LeagueId,
+                    g.Date,
+                    g.Season,
+                    c.Reference as ClubReference
+                FROM
+                    Game g
+                INNER JOIN 
+                    League l on l.LeagueId = g.LeagueId
+                INNER JOIN
+                    Club c on c.ClubId = l.ClubId
+                WHERE
+                    g.Reference = @Reference", new
+            {
+                Reference = gameReference
+            });
+        }
+    }
+
     public async Task<GameEntity> CreateGame(int leagueId, DateTime date, int season)
     {
         using (var connection = new MySqlConnection(_connectionString))
@@ -78,4 +104,5 @@ public class GameEntity
     public int LeagueId { get; set; }
     public DateTime Date { get; set; }
     public int Season { get; set; }
+    public Guid ClubReference { get; set; }
 }

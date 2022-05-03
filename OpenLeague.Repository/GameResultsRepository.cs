@@ -72,6 +72,28 @@ public class GameResultsRepository
                 })).ToList();
         }
     }
+
+    public async Task AddResult(int gameId, int clubPlayerId, int position)
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            await connection.ExecuteAsync(@"
+                INSERT INTO
+                    GameResult
+                    (GameId,    
+                    ClubPlayerId,
+                    Position)
+                VALUES
+                    (@GameId,
+                    @ClubPlayerId,
+                    @Position)", new
+                {
+                    GameId = gameId,
+                    ClubPlayerId = clubPlayerId,
+                    Position = position
+                });
+        }
+    }
 }
 
 public class GameResultEntity

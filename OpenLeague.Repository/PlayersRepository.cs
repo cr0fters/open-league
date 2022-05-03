@@ -78,6 +78,34 @@ public class PlayersRepository
             })).ToList();
         }
     }
+
+    public async Task<PlayerEntity> GetPlayer(Guid playerReference, Guid clubReference)
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            return await connection.QuerySingleAsync<PlayerEntity>(@"
+                SELECT
+                    p.PlayerId,
+                    p.Reference,
+                    p.Forename,
+                    p.Surname,
+                    cp.ClubPlayerId
+                FROM
+                    Player p
+                INNER JOIN
+                    ClubPlayer cp on cp.PlayerId = p.PlayerId
+                INNER JOIN
+                    Club c on c.ClubId = cp.ClubId
+                WHERE 
+                    c.Reference = @ClubReference
+                AND
+                    p.Reference = @PlayerReference", new
+            {
+                ClubReference = clubReference,
+                PlayerReference = playerReference
+            });
+        }
+    }
 }
 
 public class PlayerEntity
@@ -86,4 +114,5 @@ public class PlayerEntity
     public string Surname { get; set; }
     public Guid Reference { get; set; }
     public int PlayerId { get; set; }
+    public int ClubPlayerId { get; set; }
 }
